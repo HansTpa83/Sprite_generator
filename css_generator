@@ -104,10 +104,17 @@ function my_generate_css($arr, $arrSize, $argv){
     $i=0;
     $height = 0;
     $name = [];
+    $override = false;
+    $width = 0;
 // Selec nom fichier .css
     foreach ($argv as $value){
         if (str_contains($value, "-s=") || str_contains($value, "--output-style=")){
             $name = explode("=", $value);
+            
+        } elseif (str_contains($value, "-o=") || str_contains($value, "--override-size=")){
+            $override = true;
+            $arrWidth = explode("=", $value);
+            $width = $arrWidth[1];
         }
     }
     if (count($name) == 2) {
@@ -124,9 +131,15 @@ function my_generate_css($arr, $arrSize, $argv){
         $arrNameImg = explode("/",$arrNameImg );
         $nameImg = $arrNameImg[count($arrNameImg) -1];
         $nameImg = substr($nameImg, 0, -4); 
-        $str = ".sprite-".$nameImg."{\n\twidth: ".$arrSize[$i][0]."px;\n\theight: ".$arrSize[$i][1]."px;\n\tbackground-position: 0px ".$height."px;\n}\n";
-        fwrite($css, $str);
-        $height += $arrSize[$i][1];
+        if ($override == true) {
+            $str = ".sprite-".$nameImg."{\n\twidth: ".$width."px;\n\theight: ".$width."px;\n\tbackground-position: 0px ".$height."px;\n}\n";
+            fwrite($css, $str);
+            $height += $width;
+        } else {
+            $str = ".sprite-".$nameImg."{\n\twidth: ".$arrSize[$i][0]."px;\n\theight: ".$arrSize[$i][1]."px;\n\tbackground-position: 0px ".$height."px;\n}\n";
+            fwrite($css, $str);
+            $height += $arrSize[$i][1];
+        }
         $i++;
     }
     fclose($css);
