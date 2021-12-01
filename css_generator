@@ -44,7 +44,6 @@ function my_merge_image($arr, $argv){
     foreach ($argv as $value){
         if (str_contains($value, "-o=") || str_contains($value, "--override-size=")){
             $name = explode("=", $value);
-            $width = $name[1];
             $option = true;
         }
     }
@@ -58,6 +57,7 @@ function my_merge_image($arr, $argv){
         $i++;
     }
     if ($option == true){
+        $width = $name[1];
         $height = 0;
         foreach($arr as $value){
             $height += $width;
