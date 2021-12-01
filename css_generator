@@ -1,0 +1,112 @@
+#!/usr/bin/env php
+<?php
+
+function my_scan_dir($argv){
+    $arr = [
+        'Img' => [],
+        'Dir' => []
+    ];
+    $i = 0;
+    foreach(glob($argv[count($argv)-1].'/*') as $value){
+        if (is_dir($value)){
+            array_push($arr['Dir'], $value);
+        } else if (gettype(getimagesize($value))=="array"){
+            array_push($arr['Img'], $value);
+        }
+    }
+    // METTRE CONDITION SI ARGV = -r
+    if (array_search("-r", $argv) || array_search("--recursive", $argv)) {
+        while ($i < count($arr["Dir"])){
+            foreach (glob($arr['Dir'][$i]."/*") as $value){
+                if(is_dir($value)){
+                    array_push($arr['Dir'],$value);
+
+                }else if (glob($arr['Dir'][$i]."/*.png")){
+                    array_push($arr['Img'], $value);
+                }
+            }
+            $i++;
+        }
+    }
+    return $arr['Img'];
+}
+
+$arrImg = my_scan_dir($argv);
+
+function my_merge_image($arr, $argv){
+    $arrSize = [];
+    $width = 0;
+    $height = 0;
+    $i = 0;
+    while($i < count($arr)){
+        array_push($arrSize, getimagesize($arr[$i]));
+        if ($width < $arrSize[$i][0]){
+            $width = $arrSize[$i][0];
+        }
+        $height += $arrSize[$i][1];
+        $i++;
+    }
+// Creation image container 
+    $img1 = imagecreatetruecolor($width, $height);
+ // SUppr couleur de fond 
+    imagealphablending($img1, false);
+    imagesavealpha($img1, true);
+// creation img Ressource + ajout a img container
+    $height = 0;
+    $i = 0;
+    while ($i < count($arr)){
+        $imgM = imagecreatefrompng($arr[$i]);
+        imagecopy($img1, $imgM, 0, $height, 0, 0, $arrSize[$i][0], $arrSize[$i][1]);
+        $height += $arrSize[$i][1];
+        $i++;
+    }
+    $name = [];
+// creation img container dans l'arborescence  
+    foreach ($argv as $value){
+        if (str_contains($value, "-i=") || str_contains($value, "--output-image=")){
+            $name = explode("=", $value);
+        }
+    }
+
+    if (count($name) == 2) {
+        imagepng($img1, $name[count($name)-1].".png");
+    } else {
+        imagepng($img1, "sprite.png");
+    } 
+    return $arrSize;
+}
+
+$arrSizeImg = my_merge_image($arrImg, $argv);
+
+function my_generate_css($arr, $arrSize, $argv){
+    $i=0;
+    $height = 0;
+    $name = [];
+    foreach ($argv as $value){
+        if (str_contains($value, "-s=") || str_contains($value, "--output-style=")){
+            $name = explode("=", $value);
+        }
+    }
+    if (count($name) == 2) {
+        $css = fopen($name[count($name)-1].".css", "w");
+    } else {
+        $css = fopen("style.css", "w");
+    }
+    // 1ere ligne 
+    $str = ".sprite {\n\tbackground-image: url(spritesheet.png);\n\tbackground-repeat: no-repeat;\n\tdisplay: block;\n}\n";
+    fwrite($css, $str);
+
+//BOUCLE A FAIRE 
+    while ($i < count($arr)){
+        $arrNameImg = $arr[$i];
+        $arrNameImg = explode("/",$arrNameImg );
+        $nameImg = $arrNameImg[count($arrNameImg) -1];
+        $nameImg = substr($nameImg, 0, -4); 
+        $str = ".sprite-".$nameImg."{\n\twidth: ".$arrSize[$i][0]."px;\n\theight: ".$arrSize[$i][1]."px;\n\tbackground-position: 0px ".$height."px;\n}\n";
+        fwrite($css, $str);
+        $height += $arrSize[$i][1];
+        $i++;
+    }
+    fclose($css);
+}
+my_generate_css($arrImg, $arrSizeImg, $argv);
