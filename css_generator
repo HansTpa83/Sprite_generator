@@ -2,10 +2,6 @@
 <?php
 
 function my_scandir ($dir_path) {
-    if (!is_dir($dir_path)){
-        echo "Le dernier argument n'est pas un dossier !\n";
-        return;
-    }
     $arr = [
         'Img' => [],
         'Dir' => []
