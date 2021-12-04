@@ -153,7 +153,7 @@ function my_generate_css($arrImg){
         if ($optionO != false && $optionP != false) {
             $str = ".sprite-".$name."{\n\twidth: ".$optionO."px;\n\theight: ".$optionO."px;\n\tbackground-position:".$optionP."px ".$height."px;\n}\n";
             fwrite($css, $str);
-            $height += $optionO;
+            $height += $optionO+$optionP*2;
         }else if ($optionO != false) {
             $str = ".sprite-".$name."{\n\twidth: ".$optionO."px;\n\theight: ".$optionO."px;\n\tbackground-position: 0px ".$height."px;\n}\n";
             fwrite($css, $str);
