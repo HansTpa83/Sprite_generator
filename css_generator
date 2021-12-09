@@ -140,4 +140,4 @@ function my_generate_css($arrImg, $arrOptions){
 $arrOptions = options();
 $arrImg = my_scandir($argv[count($argv)-1]);
 my_merge_image($arrImg, $arrOptions);
-//my_generate_css($arrImg, $arrOptions);
+my_generate_css($arrImg, $arrOptions);
