@@ -129,7 +129,12 @@ function my_generate_css($arrImg, $arrOptions){
     } else {
         $css = fopen("style.css", "w");
     }
-    $str = ".sprite {\n\tbackground-image: url(spritesheet.png);\n\tbackground-repeat: no-repeat;\n\tdisplay: block;\n}\n";
+    if (array_key_exists("-i",$arrOptions)) {
+        $sprite = $arrOptions["-i"];
+    } else {
+        $sprite = "sprite";
+    }
+    $str = ".sprite {\n\tbackground-image: url(".$sprite.".png);\n\tbackground-repeat: no-repeat;\n\tdisplay: block;\n}\n";
     fwrite($css, $str);
     if (array_key_exists("-p", $arrOptions)){
         $width = $arrOptions["-p"];
