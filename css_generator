@@ -26,6 +26,12 @@ function options(){
             $arrOption['-s'] = $option;
         }
     }
+    if (!array_key_exists("-p", $arrOption)){
+        $arrOption['-p'] = 0;
+    }
+    if (!array_key_exists("-o", $arrOption)){
+        $arrOption['-o'] = 0;
+    }
     return $arrOption;
 }
 function my_scandir ($dir_path) {
@@ -59,60 +65,101 @@ function my_scandir ($dir_path) {
 }
 function my_merge_image($arrImg, $arrOptions){
     $width = 0;
+    $widthC = 0;
     $height = 0;    
+    $heightC = 0;  
+    $arrCopy = $arrImg;
     $i = 0;
 // Def height container
-    while ($i < count($arrImg)){
-        if (array_key_exists("-o", $arrOptions) && array_key_exists("-p", $arrOptions)) {
-            $width = count($arrImg) * ($arrOptions["-o"] + $arrOptions["-p"] * 2);
-            $height = $arrOptions["-o"] + $arrOptions["-p"] * 2;
-            break;
-        } else if (array_key_exists("-o", $arrOptions)) {
-            $width = count($arrImg) * $arrOptions["-o"];
-            $height = $arrOptions["-o"];
-            break;
-        } else if (array_key_exists("-p", $arrOptions)) {
-            if($height < getimagesize($arrImg[$i])[1] + $arrOptions["-p"] * 2){
-                $height = getimagesize($arrImg[$i])[1] + $arrOptions["-p"] * 2;
+while ($i < count($arrCopy)){
+    if (array_key_exists("-c", $arrOptions)) {
+        $arrCol = array_slice($arrCopy, 0, $arrOptions["-c"]);
+        if($arrOptions["-o"] != 0){
+            if ($arrOptions["-c"] > count($arrImg)){
+                $width = ($arrOptions["-o"] + $arrOptions["-p"] * 2) * count($arrImg);  
+            } else {
+                $width = ($arrOptions["-o"] + $arrOptions["-p"] * 2) * $arrOptions["-c"];
             }
-            $width += getimagesize($arrImg[$i])[0] + $arrOptions["-p"] * 2;
+            $height += $arrOptions["-o"] + $arrOptions["-p"] * 2;
         } else {
-            if($height < getimagesize($arrImg[$i])[1]){
-                $height = getimagesize($arrImg[$i])[1];
+            foreach($arrCol as $value){
+                if ($heightC < getimagesize($value)[1] + $arrOptions["-p"] * 2){
+                    $heightC = getimagesize($value)[1] + $arrOptions["-p"] * 2;
+                }
+                $widthC += getimagesize($value)[0] + $arrOptions["-p"] * 2;
             }
-            $width += getimagesize($arrImg[$i])[0];
+            if ($width < $widthC){
+                $width = $widthC;
+            }
+            $height += $heightC;
+            $heightC = 0;
+            $widthC = 0;
+        }        
+        $i = -1;
+        array_splice($arrCopy, 0, $arrOptions["-c"]);
+    } else if ($arrOptions["-o"] != 0) {
+        $width = count($arrImg) * ($arrOptions["-o"] + $arrOptions["-p"] * 2);
+        $height = $arrOptions["-o"] + $arrOptions["-p"] * 2;
+        break;
+    } else {
+        $width += getimagesize($arrImg[$i])[0] + $arrOptions["-p"] * 2;
+        if ($height < getimagesize($arrImg[$i])[1] + $arrOptions["-p"] * 2){
+            $height = getimagesize($arrImg[$i])[1] + $arrOptions["-p"] * 2;
         }
-        $i++;
     }
+    $i++;
+}
 // Crea img container
     $imgContainer = imagecreatetruecolor($width, $height);
 // suppr bg color 
     $color = imagecolorallocate($imgContainer, 0, 0, 0);
     imagefill($imgContainer, 0, 0, $color);
-    imagecolortransparent($imgContainer, $color);
-// Placement des img dans imgContainer
-    if(array_key_exists("-p", $arrOptions)){
-        $width = $arrOptions["-p"];
-    } else {
-        $width = 0;
+    imagecolortransparent($imgContainer, $color); 
+// Placement des img dans imgContainer 
+    $widthC=0;
+    $width=0;
+    $height=0;
+    $heightC=0;
+    $arrCopy = $arrImg;
+    if ($arrOptions["-p"] != 0){
+        $height = $arrOptions["-p"];
+        $width = $arrOptions["-p"];   
     }
-    $height = 0;
-    foreach($arrImg as $value){
+    foreach ($arrCopy as $value) {
         $imgM = imagecreatefrompng($value);
-        if (array_key_exists("-o", $arrOptions) && array_key_exists("-p", $arrOptions)) {
+        if (array_key_exists("-c", $arrOptions)){
+            $arrCol = array_slice($arrCopy, 0, $arrOptions["-c"]);
+            foreach($arrCol as $value){
+                $imgM = imagecreatefrompng($value);
+                if ($arrOptions["-o"]){
+                    $imgM = imagescale($imgM, $arrOptions["-o"]);
+                    imagecopy($imgContainer, $imgM, $width, $height , 0, 0, $arrOptions["-o"], $arrOptions["-o"]);
+                    $width += $arrOptions["-o"] + $arrOptions["-p"] * 2;
+                } else {
+                    imagecopy($imgContainer, $imgM, $width, $height, 0, 0, getimagesize($value)[0], getimagesize($value)[1]);
+                    if ($heightC < getimagesize($value)[1] + $arrOptions["-p"] * 2){
+                        $heightC = getimagesize($value)[1] + $arrOptions["-p"] * 2;
+                    }
+                    $width += getimagesize($value)[0] + $arrOptions["-p"] * 2;
+                }
+            }
+            if ($arrOptions["-o"] != 0){
+                $height += $arrOptions["-o"] + $arrOptions["-p"] * 2;
+                $width = $arrOptions["-p"];
+            } else {
+                $width = $arrOptions["-p"];
+                $height += $heightC;
+                $heightC = 0;
+                $widthC = 0;
+            }
+            array_splice($arrCopy, 0, $arrOptions["-c"]);
+        }elseif ($arrOptions["-o"] != 0) {
             $imgM = imagescale($imgM, $arrOptions["-o"]);
             imagecopy($imgContainer, $imgM, $width, $arrOptions["-p"], 0, 0, getimagesize($value)[0] + $arrOptions["-p"] * 2, getimagesize($value)[1] + $arrOptions["-p"] * 2);
             $width += $arrOptions["-o"] + $arrOptions["-p"] * 2;
-        } else if (array_key_exists("-o", $arrOptions)) {
-            $imgM = imagescale($imgM, $arrOptions["-o"]);
-            imagecopy($imgContainer, $imgM, $width, 0 , 0, 0, $arrOptions["-o"], $arrOptions["-o"]);
-            $width += $arrOptions["-o"];
-        } else if (array_key_exists("-p", $arrOptions)) {
-            imagecopy($imgContainer, $imgM, $width, $arrOptions["-p"], 0, 0, getimagesize($value)[0] + $arrOptions["-p"] * 2, getimagesize($value)[1] + $arrOptions["-p"] * 2);
-            $width += getimagesize($value)[0] + $arrOptions["-p"] * 2;
         } else {
-            imagecopy($imgContainer, $imgM, $width, 0, 0, 0, getimagesize($value)[0], getimagesize($value)[1]);
-            $width += getimagesize($value)[0];
+            imagecopy($imgContainer, $imgM, $width, $height, 0, 0, getimagesize($value)[0] + $arrOptions["-p"] * 2, getimagesize($value)[1] + $arrOptions["-p"] * 2);
+            $width += getimagesize($value)[0] + $arrOptions["-p"] * 2;
         }
     }
 // def nom "sprite"
@@ -120,10 +167,14 @@ function my_merge_image($arrImg, $arrOptions){
         imagepng($imgContainer, $arrOptions["-i"].".png");
     } else {
         imagepng($imgContainer, "sprite.png");
-    }
+    } 
 }
 function my_generate_css($arrImg, $arrOptions){
-// Def nom fichier css 
+// Def nom fichier css
+    $arrCopy = $arrImg;
+    $arrCol = [];
+    $height = 0;
+    $heightC = 0;
     if (array_key_exists("-s", $arrOptions)) {
         $css = fopen($arrOptions["-s"].".css", "w");
     } else {
@@ -136,30 +187,50 @@ function my_generate_css($arrImg, $arrOptions){
     }
     $str = ".sprite {\n\tbackground-image: url(".$sprite.".png);\n\tbackground-repeat: no-repeat;\n\tdisplay: inline-block;\n}\n";
     fwrite($css, $str);
-    if (array_key_exists("-p", $arrOptions)){
+    if ($arrOptions["-p"] != 0){
         $width = $arrOptions["-p"];
+        $height = $arrOptions["-p"];
     } else {
         $width = 0;
+        $height = 0;
     }
-    $height = 0;
-    foreach ($arrImg as $value){
-        $name = explode("/", $value);
-        $name = $name[count($name)-1];
-        $name = substr($name, 0, -4); 
-        if (array_key_exists("-o", $arrOptions) && array_key_exists("-p", $arrOptions)) {
+    foreach ($arrCopy as $value){
+        if (!array_key_exists("-c", $arrOptions)){
+            $name = explode("/", $value);
+            $name = $name[count($name)-1];
+            $name = substr($name, 0, -4);
+        }
+        if (array_key_exists("-c", $arrOptions)) {
+            $arrCol = array_slice($arrCopy, 0, $arrOptions["-c"]);
+            foreach ($arrCol as $value01){
+                $name = explode("/", $value01);
+                $name = $name[count($name)-1];
+                $name = substr($name, 0, -4);
+                if ($arrOptions["-o"] != 0){
+                    $str = ".sprite-".$name."{\n\twidth: ".$arrOptions["-o"]."px;\n\theight: ".$arrOptions["-o"]."px;\n\tbackground-position: -".$width."px -".$height."px;\n}\n";
+                    $width += $arrOptions["-o"] + $arrOptions["-p"] * 2;
+                } else {
+                    $str = ".sprite-".$name."{\n\twidth: ".getimagesize($value01)[0]."px;\n\theight: ".getimagesize($value01)[1]."px;\n\tbackground-position: -".$width."px -".$height."px;\n}\n";
+                    $width += getimagesize($value01)[0] + $arrOptions["-p"] * 2;
+                    if ($heightC < getimagesize($value01)[1] + $arrOptions["-p"] * 2){
+                        $heightC = getimagesize($value01)[1] + $arrOptions["-p"] * 2;
+                    }
+                }
+                fwrite($css, $str);
+            }
+            if ($arrOptions["-o"]){
+                $height += $arrOptions["-o"] + $arrOptions["-p"] *2;
+            } else {
+                $height += $heightC;
+            }
+            $width = $arrOptions["-p"];
+            array_splice($arrCopy, 0, $arrOptions["-c"]);
+        } else if ($arrOptions["-o"]) {
             $str = ".sprite-".$name."{\n\twidth: ".$arrOptions["-o"]."px;\n\theight: ".$arrOptions["-o"]."px;\n\tbackground-position: -".$width."px -".$arrOptions["-p"]."px;\n}\n";
             fwrite($css, $str);
             $width += $arrOptions["-o"] + $arrOptions["-p"] * 2;
-        } else if (array_key_exists("-o", $arrOptions)) {
-            $str = ".sprite-".$name."{\n\twidth: ".$arrOptions["-o"]."px;\n\theight: ".$arrOptions["-o"]."px;\n\tbackground-position: -".$width."px -0px;\n}\n";
-            fwrite($css, $str);
-            $width += $arrOptions["-o"];
-        } else if (array_key_exists("-p", $arrOptions)) {
-            $str = ".sprite-".$name."{\n\twidth: ".getimagesize($value)[0]."px;\n\theight: ".getimagesize($value)[1]."px;\n\tbackground-position: -".$width."px -".$arrOptions["-p"]."px;\n}\n";
-            fwrite($css, $str);
-            $width += getimagesize($value)[0] + $arrOptions["-p"] * 2;
         } else {
-            $str = ".sprite-".$name."{\n\twidth: ".getimagesize($value)[0]."px;\n\theight: ".getimagesize($value)[1]."px;\n\tbackground-position: -".$width."px -0px;\n}\n";
+            $str = ".sprite-".$name."{\n\twidth: ".getimagesize($value)[0]."px;\n\theight: ".getimagesize($value)[1]."px;\n\tbackground-position: -".$width."px -".$arrOptions["-p"]."px;\n}\n";
             fwrite($css, $str);
             $width += getimagesize($value)[0];
         }
